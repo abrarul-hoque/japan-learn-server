@@ -77,18 +77,17 @@ async function run() {
         // Get the current user's information
         app.get('/me', verifyToken, async (req, res) => {
             try {
-                const email = req.decoded.email; // Extract email from the decoded token
-                const user = await userCollection.findOne({ email });
+                const email = req?.decoded?.email; // Extract email from the decoded token
+                const user = await userCollection?.findOne({ email });
                 if (!user) {
                     return res.status(404).send({ message: "User not found" });
                 }
-
                 res.send({
                     user: {
-                        name: user.name,
-                        email: user.email,
-                        photo: user.photo,
-                        role: user.role,
+                        name: user?.name,
+                        email: user?.email,
+                        photo: user?.photo,
+                        role: user?.role,
                     },
                 });
             } catch (error) {
@@ -199,6 +198,14 @@ async function run() {
             res.send(result);
         })
 
+        // get lesson details
+        app.get('/lesson/:id', verifyToken, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await lessonCollection.findOne(query);
+            res.send(result);
+        })
+
 
         //============user releted api===============
         //get users data
@@ -274,65 +281,6 @@ async function run() {
 
 
 
-        //==================Survey Releted api ==================
-        // get all surveys from db
-        app.get('/surveys', async (req, res) => {
-            const result = await surveyCollection.find({ surveyStatus: 'publish' }).toArray();
-            res.send(result);
-        })
-
-
-
-
-        app.get('/dashboard/admin/surveys', async (req, res) => {
-            const result = await surveyCollection.find().toArray();
-            res.send(result);
-        })
-
-        //get survey by id
-        app.get('/surveys/surveyDetails/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await surveyCollection.findOne(query);
-            res.send(result);
-        })
-
-
-        //get 6 most recently added surveys:
-        app.get('/surveys/recent', async (req, res) => {
-            const recentSurveys = await surveyCollection.find()
-                .sort({ createdOn: -1 })
-                .limit(6)
-                .toArray();
-            console.log(recentSurveys)
-            res.send(recentSurveys);
-        })
-
-
-
-
-
-
-
-        //Update survey by surveyor
-        app.patch('/surveyor/update/:id', async (req, res) => {
-            const updatedSurvey = req.body;
-            const id = req.params.id;
-            const filter = { _id: new ObjectId(id) };
-            const updateDoc = {
-                $set: {
-                    title: updatedSurvey.title,
-                    description: updatedSurvey.description,
-                    surveyStatus: updatedSurvey.surveyStatus,
-                    category: updatedSurvey.category,
-                    deadline: updatedSurvey.deadline,
-                    surveyStatus: updatedSurvey.surveyStatus,
-                    updatedOn: updatedSurvey.updatedOn
-                }
-            }
-            const result = await surveyCollection.updateOne(filter, updateDoc);
-            res.send(result)
-        })
 
 
 
