@@ -130,14 +130,12 @@ async function run() {
                     name,
                     email,
                     password: hashedPassword,
-                    photo, // Image URL from imgbb
-                    role: "user", // Default role
+                    photo,
+                    role: "user",
                 };
 
-                // Insert the user into the database
                 const result = await userCollection.insertOne(newUser);
 
-                // Generate a JWT token
                 const token = jwt.sign({ email: newUser.email }, process.env.ACCESS_TOKEN, {
                     expiresIn: "1h",
                 });
@@ -194,6 +192,12 @@ async function run() {
         });
 
 
+        //Lessons api
+        //get lessons data
+        app.get('/lessons', verifyToken, async (req, res) => {
+            const result = await lessonCollection.find().toArray();
+            res.send(result);
+        })
 
 
         //============user releted api===============
