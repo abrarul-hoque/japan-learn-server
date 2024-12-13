@@ -207,6 +207,66 @@ async function run() {
         })
 
 
+        app.post('/lessons', verifyToken, verifyAdmin, async (req, res) => {
+            const { lessonName, lessonNumber } = req.body;
+
+            if (!lessonName || !lessonNumber) {
+                return res.status(400).send({ message: "Lesson Name and Lesson Number are required." });
+            }
+            try {
+                const existingLesson = await lessonCollection.findOne({ lessonNumber });
+                if (existingLesson) {
+                    return res.status(400).send({ message: "Lesson with this number already exists." });
+                }
+
+                const newLesson = {
+                    lessonName,
+                    lessonNumber,
+                    createdAt: new Date(),
+                };
+
+                const result = await lessonCollection.insertOne(newLesson);
+                res.status(201).send({
+                    message: "Lesson added successfully",
+                    lesson: { ...newLesson, _id: result.insertedId },
+                });
+            } catch (error) {
+                console.error("Error adding lesson:", error);
+                res.status(500).send({ message: "Failed to add lesson", error });
+            }
+        });
+
+
+        // Get lessons with vocabulary count
+        app.get('/lessons', verifyToken, async (req, res) => {
+            try {
+                const lessons = await lessonCollection.aggregate([
+                    {
+                        $lookup: {
+                            from: 'vocabularies',  // Assuming you have a vocabularies collection
+                            localField: '_id',  // Reference to lesson _id
+                            foreignField: 'lessonId',  // Reference to lesson in vocabularies collection
+                            as: 'vocabularies'
+                        }
+                    },
+                    {
+                        $project: {
+                            lessonName: 1,
+                            lessonNumber: 1,
+                            vocabularyCount: { $size: "$vocabularies" },  // Count number of vocabulary items
+                        }
+                    }
+                ]).toArray();
+                console.log(result); // Check what is being returned from the database
+
+                res.send(lessons);
+            } catch (error) {
+                console.error("Error fetching lessons:", error);
+                res.status(500).send({ message: "Failed to fetch lessons" });
+            }
+        });
+
+
         //============user releted api===============
         //get users data
         app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
@@ -226,6 +286,7 @@ async function run() {
             res.send(result);
         })
 
+
         //getting user status is admin or not
         app.get('/users/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
@@ -243,38 +304,6 @@ async function run() {
 
 
 
-
-        //update user role to surveyor
-        app.patch('/users/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
-            const id = req.params.id;
-            const filter = { _id: new ObjectId(id) };
-            const updateDoc = {
-                $set: { role: 'admin' }
-            }
-            const result = await userCollection.updateOne(filter, updateDoc);
-            res.send(result);
-        })
-
-
-        //Update normal user role to pro-user from Admin dashboard
-        app.patch('/users/:email', verifyToken, verifyAdmin, async (req, res) => {
-            const email = req.params.email;
-            const filter = { email: email };
-            const updateDoc = {
-                $set: { role: "user" }
-            }
-            const result = await userCollection.updateOne(filter, updateDoc);
-            res.send(result)
-        })
-
-
-        //Delete a user by admin 
-        app.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await userCollection.deleteOne(query);
-            res.send(result);
-        })
 
 
 
